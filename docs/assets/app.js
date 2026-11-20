@@ -32,6 +32,8 @@
     a.href = p.link;
     a.target = "_blank";
     a.rel = "noopener sponsored";
+    a.dataset.id = p.id;
+    a.dataset.nome = p.nome;
     a.setAttribute("aria-label", `${p.nome}, R$ ${p.preco}. Comprar na Shopee`);
 
     const foto = el("div", "card__foto");
@@ -94,6 +96,19 @@
   }
 
   busca.addEventListener("input", desenhar);
+
+  // Cliques (GoatCounter): produtos viram /clique/<id>, redes viram /rede/<nome>. Sem o contador, não faz nada.
+  function contar(caminho, titulo) {
+    try {
+      if (window.goatcounter && window.goatcounter.count) window.goatcounter.count({ path: caminho, title: titulo, event: true });
+    } catch (_) { /* contagem nunca atrapalha o clique */ }
+  }
+  lista.addEventListener("click", (ev) => {
+    const a = ev.target.closest("a.card");
+    if (a) contar(`clique/${a.dataset.id}`, a.dataset.nome);
+  });
+  document.querySelectorAll(".rede").forEach((a) =>
+    a.addEventListener("click", () => contar(`rede/${a.getAttribute("aria-label").toLowerCase()}`, a.getAttribute("aria-label"))));
 
   fetch("produtos.json", { cache: "no-cache" })
     .then((r) => r.json())
