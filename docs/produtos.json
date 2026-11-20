@@ -1,5 +1,5 @@
 {
-  "atualizado_em": "2026-11-20T18:56:16",
+  "atualizado_em": "2026-11-20T19:12:48",
   "produtos": [
     {
       "id": "20199206047",
@@ -12,7 +12,8 @@
       "campanha_titulo": "Black Friday e Natal",
       "apurado_em": "2026-11-20",
       "adicionado_em": "2026-11-20T18:42:15",
-      "ativo": true
+      "ativo": true,
+      "conferido_em": "2026-11-20T19:12:46"
     },
     {
       "id": "58204705757",
@@ -25,7 +26,8 @@
       "campanha_titulo": "Black Friday e Natal",
       "apurado_em": "2026-11-20",
       "adicionado_em": "2026-11-20T18:42:15",
-      "ativo": true
+      "ativo": true,
+      "conferido_em": "2026-11-20T19:12:47"
     },
     {
       "id": "23693001909",
@@ -38,7 +40,8 @@
       "campanha_titulo": "Black Friday e Natal",
       "apurado_em": "2026-11-20",
       "adicionado_em": "2026-11-20T18:42:15",
-      "ativo": true
+      "ativo": true,
+      "conferido_em": "2026-11-20T19:02:35"
     },
     {
       "id": "55050251437",
@@ -51,7 +54,8 @@
       "campanha_titulo": "Black Friday e Natal",
       "apurado_em": "2026-11-20",
       "adicionado_em": "2026-11-20T18:42:15",
-      "ativo": true
+      "ativo": true,
+      "conferido_em": "2026-11-20T19:12:47"
     },
     {
       "id": "23098317390",
@@ -64,7 +68,8 @@
       "campanha_titulo": "Black Friday e Natal",
       "apurado_em": "2026-11-20",
       "adicionado_em": "2026-11-20T18:42:15",
-      "ativo": true
+      "ativo": true,
+      "conferido_em": "2026-11-20T19:12:48"
     }
   ]
 }
