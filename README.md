@@ -21,6 +21,21 @@ Outros: `bio listar [--todos]`, `bio destacar <id>` (fixa no topo), `bio ocultar
 
 Reimportar a mesma campanha atualiza preço, link e data dos itens (o id é o `itemid` da Shopee).
 
+### Links próprios do site
+`importar` gera um link de afiliado novo para cada item com o `shopee-api`, com sub_ids
+`bio <campanha> site a <itemid>` (a mesma convenção do n8n, com o canal `bio`). As vendas da página aparecem
+separadas em `shopee conversoes --resumo`. Os links ficam guardados em `ferramentas/cache-links.json` (fora do git)
+para não chamar a API de novo. `--link-campanha` usa o link da campanha, sem gerar outro.
+
+### Automático pelo n8n
+O workflow `apuradosComite01` (n8n-local) termina com o nó **Publicar no site (apurados-bio)**, que roda
+`bio importar <pasta da execução> --titulo <tituloSite> --publicar`. Liga e desliga em `site` no nó Configuração;
+`tituloSite` é o nome curto que aparece no selo dos cards.
+
+### Contagem de visitas e cliques
+GoatCounter (sem cookies): painel em https://apuradosdojow.goatcounter.com. Cliques em produtos aparecem como
+`clique/<itemid>` e nas redes como `rede/<nome>`. O contador ignora `localhost`, então a prévia não conta.
+
 ## Regras
 
 - Só campos públicos vão para `docs/produtos.json`: o ângulo, a justificativa, a comissão e as restrições do comitê
