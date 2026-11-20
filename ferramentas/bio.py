@@ -31,6 +31,9 @@ RAIZ = Path(__file__).resolve().parent.parent
 DOCS = RAIZ / "docs"
 ARQUIVO = DOCS / "produtos.json"
 DADOS_CAMPANHAS = Path(r"C:\Projetos\apurados-dados")
+SHOPEE = Path(r"C:\Projetos\shopee-api\shopee.cmd")
+# Links do site já gerados (itemid|campanha -> link). Fora do git: é só um atalho para não chamar a API de novo.
+CACHE_LINKS = RAIZ / "ferramentas" / "cache-links.json"
 
 CAMPOS_PUBLICOS = ("id", "nome", "preco", "link", "foto", "loja", "campanha", "campanha_titulo",
                    "apurado_em", "adicionado_em", "destaque", "ativo")
@@ -99,6 +102,28 @@ def achar(dados: dict, ident: str) -> dict:
     raise SystemExit(f"Não achei o id {ident!r}. Veja os ids com: bio listar --todos")
 
 
+def link_do_site(link_produto: str, campanha: str, itemid: str, cache: dict) -> str | None:
+    """Link de afiliado próprio do site, com sub_ids `bio <campanha> site a <itemid>`.
+
+    Mesma convenção do n8n (canal, campanha, formato, variante, itemid), trocando o canal por "bio":
+    assim `shopee conversoes --resumo` separa as vendas que vieram da página.
+    """
+    chave = f"{itemid}|{campanha}"
+    if chave in cache:
+        return cache[chave]
+    limpar = lambda s: re.sub(r"[^A-Za-z0-9]", "", str(s))
+    sub = [limpar(x) for x in ("bio", campanha, "site", "a", itemid) if limpar(x)]
+    r = subprocess.run([str(SHOPEE), "link", link_produto, "--sub", *sub], text=True, capture_output=True,
+                       encoding="utf-8", stdin=subprocess.DEVNULL)
+    link = r.stdout.strip().splitlines()[-1] if r.returncode == 0 and r.stdout.strip() else ""
+    if not link.startswith("https://"):
+        print(f"  aviso: não gerei o link do site para {itemid} ({(r.stderr or r.stdout).strip()[:120]}); "
+              "fica o link da campanha")
+        return None
+    cache[chave] = link
+    return link
+
+
 # ---------------------------------------------------------------- comandos
 
 def cmd_importar(a) -> None:
@@ -119,15 +144,20 @@ def cmd_importar(a) -> None:
     apurado = (m.get("gerado_em") or agora())[:10]
 
     dados = carregar()
+    cache = {} if a.link_campanha or not CACHE_LINKS.exists() else json.loads(CACHE_LINKS.read_text(encoding="utf-8"))
     for item in pedido.get("produtos", []):
         if not item.get("link") or not item.get("preco"):
             print(f"  pulado (sem link ou preço): {item.get('nome') or item.get('titulo')}")
             continue
+        ident = str(item.get("itemid") or slug(item.get("nome") or item["titulo"]))
+        link = item["link"]
+        if not a.link_campanha and item.get("link_produto") and item.get("itemid"):
+            link = link_do_site(item["link_produto"], campanha, ident, cache) or link
         novo = {
-            "id": str(item.get("itemid") or slug(item.get("nome") or item["titulo"])),
+            "id": ident,
             "nome": (item.get("nome") or f"{item.get('titulo', '')} {item.get('titulo2', '')}").strip(),
             "preco": normalizar_preco(item["preco"]),
-            "link": validar_url(item["link"], "link"),
+            "link": validar_url(link, "link"),
             "foto": validar_url(item.get("foto", ""), "foto"),
             "loja": (item.get("loja") or "").strip(),
             "campanha": campanha,
@@ -136,7 +166,10 @@ def cmd_importar(a) -> None:
             "adicionado_em": agora(),
             "ativo": True,
         }
-        print(f"  {upsert(dados, novo):10} {novo['id']}  R$ {novo['preco']:>10}  {novo['nome'][:60]}")
+        origem = "site" if link != item["link"] else "campanha"
+        print(f"  {upsert(dados, novo):10} {novo['id']}  R$ {novo['preco']:>10}  link {origem:8}  {novo['nome'][:50]}")
+    if cache:
+        CACHE_LINKS.write_text(json.dumps(cache, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     salvar(dados)
     print(f"Campanha {campanha!r} importada de {manifesto}")
 
@@ -236,6 +269,8 @@ def main() -> None:
     s = sub.add_parser("importar", help="importa produtos de uma campanha do apurados-dados")
     s.add_argument("pasta", help="pasta da execução, da campanha (pega a mais recente) ou manifest.json")
     s.add_argument("--titulo", help="nome da campanha na página (padrão: título do pedido)")
+    s.add_argument("--link-campanha", action="store_true",
+                   help="usa o link de afiliado da campanha em vez de gerar um próprio do site (sub_id bio)")
     s.add_argument("--publicar", action="store_true", help="publica logo depois de importar")
     s.add_argument("-m", "--mensagem")
     s.set_defaults(f=cmd_importar)
