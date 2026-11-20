@@ -1,0 +1,153 @@
+/* Apurados do Jow: página de links e achados.
+   Cores e fontes tiradas de apurados-layouts/layouts/Logo e capas. */
+
+@font-face { font-family: "Barlow"; src: url("fontes/Barlow-Regular.ttf") format("truetype"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Barlow"; src: url("fontes/Barlow-SemiBold.ttf") format("truetype"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Barlow"; src: url("fontes/Barlow-Black.ttf") format("truetype"); font-weight: 900; font-display: swap; }
+@font-face { font-family: "Barlow Condensed"; src: url("fontes/BarlowCondensed-ExtraBoldItalic.ttf") format("truetype"); font-weight: 800; font-style: italic; font-display: swap; }
+@font-face { font-family: "Barlow Condensed"; src: url("fontes/BarlowCondensed-BlackItalic.ttf") format("truetype"); font-weight: 900; font-style: italic; font-display: swap; }
+
+:root {
+  --preto: #0d0d0d;
+  --preto-2: #171717;
+  --preto-3: #222;
+  --amarelo: #fdb913;
+  --amarelo-2: #ffc93c;
+  --branco: #f2f2f2;
+  --cinza: #a3a3a3;
+  --raio: 18px;
+  --gutter: 16px;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--preto);
+  color: var(--branco);
+  font-family: "Barlow", system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.45;
+  overflow-x: hidden;
+}
+img { display: block; max-width: 100%; }
+a { color: inherit; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Faixas diagonais dos cantos, como nas capas */
+.faixa { position: fixed; width: 260px; height: 260px; pointer-events: none; z-index: 0; }
+.faixa--topo { top: 0; left: 0;
+  background: linear-gradient(135deg, var(--amarelo) 0 18%, transparent 18% 23%, var(--amarelo) 23% 31%, transparent 31%); }
+.faixa--base { bottom: 0; right: 0;
+  background: linear-gradient(315deg, var(--amarelo) 0 18%, transparent 18% 23%, var(--amarelo) 23% 31%, transparent 31%); }
+
+.pagina {
+  position: relative; z-index: 1;
+  max-width: 720px; margin: 0 auto;
+  padding: 48px var(--gutter) 64px;
+}
+
+/* Perfil */
+.perfil { text-align: center; }
+.perfil__foto {
+  width: 112px; height: 112px; margin: 0 auto 14px;
+  border-radius: 50%; border: 3px solid var(--amarelo);
+  box-shadow: 0 0 0 6px var(--preto), 0 10px 40px rgba(253, 185, 19, .18);
+}
+.marca { margin: 0; font-weight: 900; font-size: clamp(2.3rem, 9vw, 3.2rem); line-height: .95; letter-spacing: -.02em; }
+.marca__a { color: var(--branco); }
+.marca__b { color: var(--amarelo); }
+.selo {
+  display: inline-block; margin: 14px 0 0; padding: 7px 18px;
+  background: var(--amarelo); color: var(--preto); border-radius: 999px;
+  font-family: "Barlow Condensed", sans-serif; font-style: italic; font-weight: 900;
+  font-size: 1.05rem; text-transform: uppercase; letter-spacing: .01em;
+}
+.redes { display: flex; justify-content: center; gap: 12px; margin-top: 22px; }
+.rede {
+  display: grid; place-items: center; width: 50px; height: 50px; border-radius: 50%;
+  background: var(--preto-2); border: 1.5px solid var(--preto-3); color: var(--branco);
+  transition: background .15s, color .15s, transform .15s;
+}
+.rede svg { width: 24px; height: 24px; }
+.rede:hover, .rede:focus-visible { background: var(--amarelo); color: var(--preto); transform: translateY(-2px); }
+
+/* Ofertas */
+.ofertas { margin-top: 40px; }
+.ofertas__topo { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.titulo-secao {
+  margin: 0; font-family: "Barlow Condensed", sans-serif; font-style: italic; font-weight: 900;
+  font-size: 2rem; text-transform: uppercase; line-height: 1;
+}
+.titulo-secao span { color: var(--amarelo); }
+.busca {
+  display: flex; align-items: center; gap: 8px; flex: 1 1 200px; max-width: 280px;
+  padding: 0 14px; height: 44px; border-radius: 999px;
+  background: var(--preto-2); border: 1.5px solid var(--preto-3); color: var(--cinza);
+}
+.busca:focus-within { border-color: var(--amarelo); }
+.busca svg { width: 18px; height: 18px; flex: none; }
+.busca input { flex: 1; min-width: 0; background: none; border: 0; outline: 0; color: var(--branco); font: inherit; }
+
+.filtros { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 18px; }
+.filtros:empty { display: none; }
+.filtro {
+  padding: 7px 14px; border-radius: 999px; cursor: pointer;
+  background: transparent; color: var(--branco); border: 1.5px solid var(--preto-3);
+  font: 600 .9rem "Barlow", sans-serif;
+}
+.filtro[aria-pressed="true"] { background: var(--amarelo); border-color: var(--amarelo); color: var(--preto); }
+
+.lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 620px) { .lista { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+.card {
+  display: flex; flex-direction: column; height: 100%;
+  background: var(--preto-2); border: 1.5px solid var(--preto-3); border-radius: var(--raio);
+  overflow: hidden; text-decoration: none;
+  transition: border-color .15s, transform .15s;
+}
+.card:hover, .card:focus-visible { border-color: var(--amarelo); transform: translateY(-2px); outline: none; }
+.card__foto { position: relative; aspect-ratio: 1; background: #f4f3ef; }
+.card__foto img { width: 100%; height: 100%; object-fit: contain; }
+.card__tag {
+  position: absolute; top: 8px; left: 8px; max-width: calc(100% - 16px); padding: 3px 9px; border-radius: 999px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  background: var(--preto); color: var(--amarelo);
+  font: italic 800 .75rem "Barlow Condensed", sans-serif; text-transform: uppercase; letter-spacing: .03em;
+}
+.card__corpo { display: flex; flex-direction: column; gap: 6px; flex: 1; padding: 12px; }
+.card__nome {
+  margin: 0; font-weight: 600; font-size: .92rem; line-height: 1.25;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.card__loja { margin: 0; color: var(--cinza); font-size: .78rem; }
+.preco { margin-top: auto; padding-top: 4px; font-family: "Barlow Condensed", sans-serif; font-style: italic; font-weight: 900; color: var(--amarelo); line-height: 1; }
+.preco__rs { font-size: 1.05rem; margin-right: 2px; }
+.preco__int { font-size: 2rem; }
+.preco__cent { font-size: 1.1rem; }
+.card__nota { margin: 0; color: var(--cinza); font-size: .7rem; }
+.card__botao {
+  display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 6px;
+  min-height: 40px; padding: 8px 10px; border-radius: 999px;
+  background: var(--amarelo); color: var(--preto);
+  font: italic 900 .95rem "Barlow Condensed", sans-serif; text-transform: uppercase;
+}
+.card:hover .card__botao { background: var(--amarelo-2); }
+.card__botao svg { width: 14px; height: 14px; }
+
+.vazio { text-align: center; color: var(--cinza); margin: 28px 0; }
+
+.rodape { margin-top: 48px; padding-top: 20px; border-top: 1.5px solid var(--preto-3); color: var(--cinza); font-size: .8rem; text-align: center; }
+.rodape p { margin: 0 0 8px; }
+.rodape strong { color: var(--amarelo); }
+.rodape__marca { margin-top: 14px !important; color: var(--branco); font-weight: 600; }
+
+@media (max-width: 380px) {
+  .faixa { width: 170px; height: 170px; }
+  .card__corpo { padding: 10px; }
+  .preco__int { font-size: 1.7rem; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
