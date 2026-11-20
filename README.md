@@ -16,7 +16,7 @@ bio previa                      # confere em http://localhost:8000
 bio publicar                    # commit de docs/ + push; o site atualiza em ~1 min
 ```
 
-Outros: `bio listar [--todos]`, `bio destacar <id>` (fixa no topo), `bio ocultar|mostrar|remover <id>`,
+Outros: `bio conferir` (ver abaixo), `bio listar [--todos]`, `bio destacar <id>` (fixa no topo), `bio ocultar|mostrar|remover <id>`,
 `bio limpar --dias 30` (oculta achados com preço velho). `importar` e `adicionar` aceitam `--publicar`.
 
 Reimportar a mesma campanha atualiza preço, link e data dos itens (o id é o `itemid` da Shopee).
@@ -31,6 +31,21 @@ para não chamar a API de novo. `--link-campanha` usa o link da campanha, sem ge
 O workflow `apuradosComite01` (n8n-local) termina com o nó **Publicar no site (apurados-bio)**, que roda
 `bio importar <pasta da execução> --titulo <tituloSite> --publicar`. Liga e desliga em `site` no nó Configuração;
 `tituloSite` é o nome curto que aparece no selo dos cards.
+
+### Conferir se os achados ainda valem
+`bio conferir [--publicar]` consulta cada achado visível na Open API de afiliados (pelo itemid, 1 chamada por item):
+
+| Situação na API | O que acontece |
+|---|---|
+| item não encontrado | some do site (`oculto_por: conferir`) |
+| oferta encerrada (`periodEndTime` no passado) | some do site |
+| comissão zerada | some do site |
+| preço mudou | atualiza o preço |
+| ok | só renova "Preço apurado em" para hoje |
+
+Itens que o `conferir` ou o `limpar` ocultaram são conferidos de novo e voltam se valerem; os ocultados à mão
+(`bio ocultar`) nunca voltam sozinhos. Erro da API não oculta nada. `bio listar --todos` mostra o motivo de cada oculto.
+Roda sozinho todo dia às 7h pelo workflow `apuradosConferir01` do n8n-local (o n8n precisa estar aberto).
 
 ### Contagem de visitas e cliques
 GoatCounter (sem cookies): painel em https://apuradosdojow.goatcounter.com. Cliques em produtos aparecem como

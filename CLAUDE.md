@@ -6,6 +6,10 @@ Página de links da bio (apuradosdojow.com.br) do **Apurados do Jow**. Site est�
 ## Ligação com os outros projetos
 - Lê `C:\Projetos\apurados-dados\<campanha>\<exec>\manifest.json` (gerado pelo `apurados-layouts`, campo
   `pedido.produtos`). Se o formato do manifest mudar lá, ajustar `cmd_importar`.
+- Gera links (`shopee link`, sub_id `bio`) e confere achados (`shopee produtos --item`) pelo `shopee-api`.
+  Nunca conferir abrindo a página da Shopee (scraping é proibido pelos termos do programa).
+- n8n-local chama `bio.py importar ... --publicar` no fim do `apuradosComite01` e `bio.py conferir --publicar`
+  todo dia às 7h (`apuradosConferir01`). Ao mudar argumentos da CLI, conferir esses dois workflows.
 - Identidade visual vem de `apurados-layouts/layouts/Logo e capas` e `apurados-layouts/fontes`.
 
 ## Regras
