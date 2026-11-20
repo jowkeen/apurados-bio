@@ -36,7 +36,8 @@ SHOPEE = Path(r"C:\Projetos\shopee-api\shopee.cmd")
 CACHE_LINKS = RAIZ / "ferramentas" / "cache-links.json"
 
 CAMPOS_PUBLICOS = ("id", "nome", "preco", "link", "foto", "loja", "campanha", "campanha_titulo",
-                   "apurado_em", "adicionado_em", "destaque", "ativo")
+                   "apurado_em", "adicionado_em", "destaque", "ativo",
+                   "conferido_em", "oculto_por", "motivo")  # os 3 últimos: controle do `conferir`
 
 
 def agora() -> str:
@@ -87,6 +88,8 @@ def upsert(dados: dict, novo: dict) -> str:
             adicionado = p.get("adicionado_em")
             destaque = p.get("destaque")
             p.update(novo)
+            p.pop("oculto_por", None)
+            p.pop("motivo", None)
             p["adicionado_em"] = adicionado or novo["adicionado_em"]
             if destaque is not None:
                 p["destaque"] = destaque
@@ -199,14 +202,21 @@ def cmd_listar(a) -> None:
         if not a.todos and p.get("ativo") is False:
             continue
         marca = "*" if p.get("destaque") else (" " if p.get("ativo", True) else "-")
+        motivo = f"  (oculto: {p['motivo'] if p.get('motivo') else p.get('oculto_por', 'manual')})" \
+            if p.get("ativo") is False else ""
         print(f"{marca} {p['id']:<14} {p.get('apurado_em', ''):<10} R$ {p['preco']:>10}  "
-              f"[{p.get('campanha', '')}] {p['nome'][:55]}")
+              f"[{p.get('campanha', '')}] {p['nome'][:55]}{motivo}")
     print("(* destaque, - oculto)")
 
 
 def _marcar(ident: str, **campos) -> None:
     dados = carregar()
-    achar(dados, ident).update(campos)
+    p = achar(dados, ident)
+    p.update(campos)
+    for k in [k for k, v in p.items() if v is None]:
+        del p[k]
+    if p.get("ativo", True):
+        p.pop("motivo", None)
     salvar(dados)
     print("ok", ident, campos)
 
@@ -225,10 +235,80 @@ def cmd_limpar(a) -> None:
     n = 0
     for p in dados["produtos"]:
         if p.get("ativo", True) and p.get("apurado_em", "9999") < limite:
-            p["ativo"] = False
+            p.update(ativo=False, oculto_por="limpar", motivo=f"preço apurado há mais de {a.dias} dias")
             n += 1
     salvar(dados)
     print(f"{n} achado(s) apurado(s) antes de {limite} ocultado(s)")
+
+
+def consultar_item(itemid: str) -> dict | None | str:
+    """Situação atual do item na Open API de afiliados. None = não existe mais; str = erro da consulta."""
+    r = subprocess.run([str(SHOPEE), "produtos", "--item", itemid, "--json",
+                        "--campos", "itemId,priceMin,priceMax,commissionRate,periodEndTime"],
+                       text=True, capture_output=True, encoding="utf-8", stdin=subprocess.DEVNULL)
+    if r.returncode:
+        return (r.stderr or r.stdout).strip()[:160] or f"código {r.returncode}"
+    try:
+        linhas = json.loads(r.stdout.strip().splitlines()[-1])
+    except (ValueError, IndexError):
+        return f"resposta inesperada: {r.stdout.strip()[:120]}"
+    return linhas[0] if linhas else None
+
+
+def cmd_conferir(a) -> None:
+    """Confere na API cada achado visível (e os que o próprio conferir ocultou) e corrige o site.
+
+    - some do site: item não encontrado, oferta encerrada (periodEndTime) ou comissão zerada;
+    - preço mudou: atualiza o preço; em todo item conferido, `apurado_em` vira hoje;
+    - item ocultado antes pelo conferir que voltou a valer: aparece de novo.
+    Ocultados à mão (`bio ocultar`) e itens sem itemid não são mexidos. Erro da API não oculta nada.
+    """
+    hoje = dt.date.today().isoformat()
+    agora_ts = dt.datetime.now().timestamp()
+    dados = carregar()
+    alvo = [p for p in dados["produtos"]
+            if p["id"].isdigit() and (p.get("ativo", True) or p.get("oculto_por") in ("conferir", "limpar"))]
+    resumo = {"ok": 0, "preço": 0, "ocultado": 0, "voltou": 0, "erro": 0}
+    print(f"Conferindo {len(alvo)} achado(s) na API da Shopee...")
+    for p in alvo:
+        info = consultar_item(p["id"])
+        nome = p["nome"][:50]
+        if isinstance(info, str):
+            resumo["erro"] += 1
+            print(f"  ERRO      {p['id']}  {nome}  ({info})")
+            continue
+        motivo = None
+        if info is None:
+            motivo = "anúncio não encontrado no programa de afiliados"
+        elif int(info.get("periodEndTime") or 0) and int(info["periodEndTime"]) < agora_ts:
+            motivo = "oferta de comissão encerrada"
+        elif float(info.get("commissionRate") or 0) <= 0:
+            motivo = "comissão zerada"
+        p["conferido_em"] = agora()
+        if motivo:
+            if p.get("ativo", True):
+                resumo["ocultado"] += 1
+                print(f"  OCULTADO  {p['id']}  {nome}  ({motivo})")
+            p.update(ativo=False, oculto_por="conferir", motivo=motivo)
+            continue
+        if not p.get("ativo", True):
+            resumo["voltou"] += 1
+            print(f"  VOLTOU    {p['id']}  {nome}")
+        p["ativo"] = True
+        p.pop("oculto_por", None)
+        p.pop("motivo", None)
+        novo = normalizar_preco(info["priceMin"])
+        if novo != p["preco"]:
+            resumo["preço"] += 1
+            print(f"  PREÇO     {p['id']}  R$ {p['preco']} -> R$ {novo}  {nome}")
+            p["preco"] = novo
+        else:
+            resumo["ok"] += 1
+        p["apurado_em"] = hoje
+    salvar(dados)
+    print("Resumo: " + ", ".join(f"{v} {k}" for k, v in resumo.items()))
+    if resumo["erro"] and resumo["erro"] == len(alvo):
+        raise SystemExit("Todas as consultas falharam (API da Shopee fora?). Nada foi ocultado; tente mais tarde.")
 
 
 def cmd_previa(a) -> None:
@@ -293,7 +373,9 @@ def main() -> None:
     s.add_argument("--todos", action="store_true", help="inclui os ocultos")
     s.set_defaults(f=cmd_listar)
 
-    for nome, campos in (("ocultar", {"ativo": False}), ("mostrar", {"ativo": True})):
+    # ocultar à mão marca "manual": o conferir nunca traz de volta
+    for nome, campos in (("ocultar", {"ativo": False, "oculto_por": "manual"}),
+                         ("mostrar", {"ativo": True, "oculto_por": None})):
         s = sub.add_parser(nome)
         s.add_argument("id")
         s.set_defaults(f=lambda a, c=campos: _marcar(a.id, **c))
@@ -310,6 +392,11 @@ def main() -> None:
     s = sub.add_parser("limpar", help="oculta achados com preço antigo")
     s.add_argument("--dias", type=int, default=30)
     s.set_defaults(f=cmd_limpar)
+
+    s = sub.add_parser("conferir", help="confere na API se cada achado ainda vale e atualiza preços")
+    s.add_argument("--publicar", action="store_true")
+    s.add_argument("-m", "--mensagem")
+    s.set_defaults(f=cmd_conferir)
 
     s = sub.add_parser("previa")
     s.add_argument("--porta", type=int, default=8000)
